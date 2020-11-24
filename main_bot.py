@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import vk_api
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 from random import randint
