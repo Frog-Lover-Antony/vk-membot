@@ -8,10 +8,24 @@ from glob import glob
 from lib.memegenerator import make_meme
 from time import sleep
 
+
 def message(uid, msg):
     vk.messages.send(peer_id=uid, message=msg, random_id=randint(-2147483648, 2147483648))
     if DEBUG:
         print(message, "отправлено", uid)
+
+
+def mark_read(uuid):
+    retries = 0
+    while retries <= 5:
+        try:
+            vk.messages.markAsRead(peer_id=uuid)
+            break
+        except:
+            if DEBUG:
+                print("could not send MarkAsRead packet, retrying")
+            retries += 1
+            sleep(2)
 
 
 def make_photo(url, uuid, text):
@@ -83,17 +97,18 @@ if __name__ == "__main__":
         print("Something went wrong!", vk, vk_session)
         exit(-2)
     print("Authenticated!")
+    if DEBUG:
+        print("starting listener...")
     longpoll = VkBotLongPoll(vk_session, GROUPID)
+    print("Listener started.")
 
-    print("Listener starting...")
     for event in longpoll.listen():
         if DEBUG:
             print(event)
         msg = event.obj["text"].lower()
         uuid = event.obj["from_id"]
+        mark_read(uuid)
         if event.type == VkBotEventType.MESSAGE_NEW and event.obj["attachments"]:
-            sleep(0.1)
-            vk.messages.markAsRead(peer_id=uuid)
             if event.obj["text"]:
                 text = [str(event.obj["text"]).split("\n")]
                 if len(text) > 2:
@@ -101,10 +116,10 @@ if __name__ == "__main__":
                 elif len(text) == 1:
                     text = text[0] + [""]
             else:
-                text = ["lol", "bottom text"]  # todo random text
+                text = ["lol", "BOTTOM TEXT"]  # todo random text
 
-            if text[0] == ".":
-                text = [""] + text[1]
+            if text[0] == "." and text[1] != "":
+                text = [""] + [text[1]]
             for att in event.obj["attachments"]:
                 if att['type'] == 'photo':
                     for img in att['photo']['sizes']:
@@ -117,5 +132,9 @@ if __name__ == "__main__":
             if DEBUG:
                 print("от", uuid, "пришло", msg)
         elif event.type == VkBotEventType.MESSAGE_NEW and event.obj["text"] and not event.obj["attachments"]:
-            message(uuid, "Шо вы хотите то, я не понял.\nОтправьте изображение с текстом в две строки для создания "
-                          "мема.")
+            if msg not in ["шрифты", "fonts", "шрифтеки"]:
+                message(uuid, """Шо вы хотите то, я не понял.\nОтправьте изображение с текстом в две строки для создания 
+                мема.\nПринимаются только картинки, не документы. Пересланные сообщения тоже не принимаются.\nЧтобы 
+                писать только в нижней строке, в первой поставьте точку.""")
+            else:
+                message(uuid, "Молодец. Этой функции ещё нет, а ты её уже нашёл. Просто молодец.")
