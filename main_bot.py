@@ -6,7 +6,7 @@ import requests
 from os import remove
 from glob import glob
 from lib.memegenerator import make_meme
-
+from time import sleep
 
 def message(uid, msg):
     vk.messages.send(peer_id=uid, message=msg, random_id=randint(-2147483648, 2147483648))
@@ -19,15 +19,18 @@ def make_photo(url, uuid, text):
     extension = url[url.rfind("."):url.rfind("?")]
     if extension == ".jp":
         extension = ".jpg"
-
-    download_file = open(images_folder + "img_received" + extension, "wb")
-    download_file.write(req.content)
-    download_file.close()
-    # meme generator moment
-    meme = make_meme(text[0], text[1], images_folder + "img_received" + extension)
-    meme.save(images_folder + "img_output" + url[url.rfind("."):url.rfind("?")])
-    upload = vk_api.VkUpload(vk)
-    photo = upload.photo_messages(images_folder + "img_output" + extension)
+    try:
+        download_file = open(images_folder + "img_received" + extension, "wb")
+        download_file.write(req.content)
+        download_file.close()
+        # meme generator moment
+        meme = make_meme(text[0], text[1], images_folder + "img_received" + extension)
+        meme.save(images_folder + "img_output" + extension)
+        upload = vk_api.VkUpload(vk)
+        photo = upload.photo_messages(images_folder + "img_output" + extension)
+    except:
+        message(uuid, "Ой ох.... Что то пошло не так... Попробуйте отправить ещё разок...")
+        return -1
     owner_id = photo[0]['owner_id']
     photo_id = photo[0]['id']
     access_key = photo[0]['access_key']
@@ -89,6 +92,7 @@ if __name__ == "__main__":
         msg = event.obj["text"].lower()
         uuid = event.obj["from_id"]
         if event.type == VkBotEventType.MESSAGE_NEW and event.obj["attachments"]:
+            sleep(0.1)
             vk.messages.markAsRead(peer_id=uuid)
             if event.obj["text"]:
                 text = [str(event.obj["text"]).split("\n")]
@@ -98,6 +102,9 @@ if __name__ == "__main__":
                     text = text[0] + [""]
             else:
                 text = ["lol", "bottom text"]  # todo random text
+
+            if text[0] == ".":
+                text = [""] + text[1]
             for att in event.obj["attachments"]:
                 if att['type'] == 'photo':
                     for img in att['photo']['sizes']:
