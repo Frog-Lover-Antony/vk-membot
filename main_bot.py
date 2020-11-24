@@ -106,4 +106,4 @@ if __name__ == "__main__":
                 print("от", uuid, "пришло", msg)
         elif event.type == VkBotEventType.MESSAGE_NEW and event.obj["text"] and not event.obj["attachments"]:
             message(uuid, "Шо вы хотите то, я не понял.\nОтправьте изображение с текстом в две строки для создания "
-                          "мема.\nМожете текст и не отправлять, там будет какая нибудь простая смешняфка из списка)")
+                          "мема.")
