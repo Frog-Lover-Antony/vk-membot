@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import vk_api
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
-from random import randint
+from random import randint, choice
 import requests
 from os import remove
 from glob import glob
@@ -132,9 +132,11 @@ if __name__ == "__main__":
             if DEBUG:
                 print("от", uuid, "пришло", msg)
         elif event.type == VkBotEventType.MESSAGE_NEW and event.obj["text"] and not event.obj["attachments"]:
-            if msg not in ["шрифты", "fonts", "шрифтеки"]:
+            if msg not in ["шрифты", "fonts", "шрифтеки"] and msg != "ping":
                 message(uuid, """Шо вы хотите то, я не понял.\nОтправьте изображение с текстом в две строки для создания 
-                мема.\nПринимаются только картинки, не документы. Пересланные сообщения тоже не принимаются.\nЧтобы 
-                писать только в нижней строке, в первой поставьте точку.""")
-            else:
+            мема.\nПринимаются только картинки, не документы. Пересланные сообщения тоже не принимаются.\nЧтобы 
+            писать только в нижней строке, в первой поставьте точку.""")
+            elif msg == "ping":
+                message(uuid, choice(["ЕЩЩЁ ЖЫВ", "pong", "pong!", str(randint(120, 8000))+"ms"]))
+            elif msg not in ["шрифты", "fonts", "шрифтеки"]:
                 message(uuid, "Молодец. Этой функции ещё нет, а ты её уже нашёл. Просто молодец.")
