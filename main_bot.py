@@ -16,14 +16,18 @@ def message(uid, msg):
 
 def make_photo(url, uuid, text):
     req = requests.get(url=url)
-    download_file = open(images_folder + "img_received" + url[url.rfind("."):url.rfind("?")], "wb")
+    extension = url[url.rfind("."):url.rfind("?")]
+    if extension == ".jp":
+        extension = ".jpg"
+
+    download_file = open(images_folder + "img_received" + extension, "wb")
     download_file.write(req.content)
     download_file.close()
     # meme generator moment
-    meme = make_meme(text[0], text[1], "images/img_received" + url[url.rfind("."):url.rfind("?")])
+    meme = make_meme(text[0], text[1], images_folder + "img_received" + extension)
     meme.save(images_folder + "img_output" + url[url.rfind("."):url.rfind("?")])
     upload = vk_api.VkUpload(vk)
-    photo = upload.photo_messages(images_folder + "img_output" + url[url.rfind("."):url.rfind("?")])
+    photo = upload.photo_messages(images_folder + "img_output" + extension)
     owner_id = photo[0]['owner_id']
     photo_id = photo[0]['id']
     access_key = photo[0]['access_key']
