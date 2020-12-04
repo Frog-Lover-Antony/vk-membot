@@ -5,13 +5,13 @@ from PIL import Image
 from PIL import ImageDraw
 
 
-def make_meme(topString, bottomString, filename):
+def make_meme(topString, bottomString, filename, font="arial.ttf"):
     img = Image.open(filename)
     imageSize = img.size
 
     # find biggest font size that works
     fontSize = int(imageSize[1] / 5)
-    fontPath = "fonts/" + "arial.ttf"
+    fontPath = "fonts/" + font
     font = ImageFont.truetype(fontPath, fontSize)
     topTextSize = font.getsize(topString)
     bottomTextSize = font.getsize(bottomString)

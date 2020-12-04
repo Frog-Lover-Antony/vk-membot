@@ -3,16 +3,18 @@ import vk_api
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 from random import randint, choice
 import requests
-from os import remove
+from os import remove, chdir
 from glob import glob
 from lib.memegenerator import make_meme
 from time import sleep
 
+chdir(__file__[0:__file__.rfind(".")])
 
-def message(uid, msg):
-    vk.messages.send(peer_id=uid, message=msg, random_id=randint(-2147483648, 2147483648))
+
+def message(uuid, msg):
+    vk.messages.send(peer_id=uuid, message=msg, random_id=randint(-2147483648, 2147483648))
     if DEBUG:
-        print(message, "отправлено", uid)
+        print(message, "sent", uuid)
 
 
 def mark_read(uuid):
@@ -29,38 +31,45 @@ def mark_read(uuid):
 
 
 def make_photo(url, uuid, text):
-    req = requests.get(url=url)
-    extension = url[url.rfind("."):url.rfind("?")]
-    if extension == ".jp":
-        extension = ".jpg"
-    try:
-        download_file = open(images_folder + "img_received" + extension, "wb")
-        download_file.write(req.content)
-        download_file.close()
-        # meme generator moment
-        meme = make_meme(text[0], text[1], images_folder + "img_received" + extension)
-        meme.save(images_folder + "img_output" + extension)
-        upload = vk_api.VkUpload(vk)
-        photo = upload.photo_messages(images_folder + "img_output" + extension)
-    except:
-        message(uuid, "Ой ох.... Что то пошло не так... Попробуйте отправить ещё разок...")
-        return -1
-    owner_id = photo[0]['owner_id']
-    photo_id = photo[0]['id']
-    access_key = photo[0]['access_key']
-    attachment = f'photo{owner_id}_{photo_id}_{access_key}'
-    vk.messages.send(peer_id=uuid, random_id=randint(-2147483648, 2147483648), attachment=attachment)
-    tree = glob(images_folder + "*")
-    for i in tree:
-        remove(i)
+    max_attempts = 2
+    for tries in range(max_attempts):
+        try:
+            req = requests.get(url=url)
+            extension = url[url.rfind("."):url.rfind("?")]
+            if extension != ".jpg":
+                extension = ".jpg"
+                download_file = open(images_folder + "img_received" + extension, "wb")
+                download_file.write(req.content)
+                download_file.close()
+                # meme generator moment
+                meme = make_meme(text[0], text[1], images_folder + "img_received" + extension)
+                meme.save(images_folder + "img_output" + extension)
+                upload = vk_api.VkUpload(vk)
+                photo = upload.photo_messages(images_folder + "img_output" + extension)
+                break
+        except:
+            if tries >= max_attempts:
+                message(uuid, "Ой ох.... Что то пошло не так... Попробуйте отправить ещё разок...")
+                return -1
 
+
+owner_id = photo[0]['owner_id']
+photo_id = photo[0]['id']
+access_key = photo[0]['access_key']
+attachment = f'photo{owner_id}_{photo_id}_{access_key}'
+vk.messages.send(peer_id=uuid, random_id=randint(-2147483648, 2147483648), attachment=attachment)
+tree = glob(images_folder + "*")
+for i in tree:
+    remove(i)
 
 if __name__ == "__main__":
     while True:
         try:
             try:
-                print("reading configuration...")
+                print("reading configuration...")  # todo normal config
                 images_folder = "images/"
+                commands_file = "lib/commands.cfg"
+                font = "impact.ttf"
                 KEY = None
                 GROUPID = None
                 DEBUG = True
@@ -71,7 +80,18 @@ if __name__ == "__main__":
                     parameter = parameter.split("=")
                     if parameter[0] == "images_folder":
                         images_folder = parameter[1]
-                        print("working folder=", images_folder, sep="")
+                        print("temp folder=", images_folder, sep="")
+                    # elif parameter[0] == "commands_file":  # todo configurable text
+                    # commands_file = parameter[1]
+                    elif parameter[0] == "font":
+                        font = parameter[1]
+                        try:
+                            test = open("fonts/" + font, "r")
+                            test.close()
+                            del test
+                        except FileNotFoundError:
+                            print("incorrect font" + font)
+                            font = "arial.ttf"
                     elif parameter[0] == "token":
                         KEY = parameter[1]
                     elif parameter[0] == "groupid":
@@ -89,6 +109,13 @@ if __name__ == "__main__":
                 print("File config.conf does not seem to exist. Please, visit Frog-Lover-Antony/vk-membot "
                       "if you have any trouble running the script.")
                 exit(-1)
+            # commands = open("lib/" + commands_file, "r")  # todo configurable text
+            # buffer = commands.read().split("\n")
+            # commands.close()
+            # for i in buffer:
+            #     buffer[i] = i.split("=")
+            # commands = dict(buffer)
+
             try:
                 vk_session = vk_api.VkApi(token=KEY)
                 vk = vk_session.get_api()
@@ -134,14 +161,21 @@ if __name__ == "__main__":
                     if DEBUG:
                         print("от", uuid, "пришло", msg)
                 elif event.type == VkBotEventType.MESSAGE_NEW and event.obj["text"] and not event.obj["attachments"]:
-                    if msg not in ["шрифты", "fonts", "шрифтеки"] and msg != "ping":
-                        message(uuid, """Шо вы хотите то, я не понял.\nОтправьте изображение с текстом в две строки для создания 
-                    мема.\nПринимаются только картинки, не документы. Пересланные сообщения тоже не принимаются.\nЧтобы 
-                    писать только в нижней строке, в первой поставьте точку.""")
-                    elif msg == "ping":
-                        message(uuid, choice(["ЕЩЩЁ ЖЫВ", "pong", "pong!", str(randint(120, 8000))+"ms"]))
-                    elif msg not in ["шрифты", "fonts", "шрифтеки"]:
-                        message(uuid, "Молодец. Этой функции ещё нет, а ты её уже нашёл. Просто молодец.")
-        except requests.exceptions.ReadTimeout:
+                    if msg in ["ping", "пинг"]:
+                        message(uuid, choice(["ЕЩЩЁ ЖЫВ", "Понг", "Понг!", "По(н)г!",
+                                              "Работаем с " + str(randint(1890, 2015)),
+                                              str(randint(120, 8000)) + "ms"]))
+                    else:
+                        message(uuid, "Шо вы хотите то, я не понял.\n"
+                                      "Отправьте изображение с текстом в две строки для создания мема.\n"
+                                      "Принимаются только картинки, не документы.\n"
+                                      "Пересланные сообщения тоже не принимаются.\n"
+                                      "Чтобы писать только в нижней строке, в первой поставьте точку.")
+
+        except KeyboardInterrupt:
+            print("exiting...")
+            exit(0)
+
+        except:
             if DEBUG:
                 print("Timed out!")
