@@ -8,7 +8,7 @@ from glob import glob
 from lib.memegenerator import make_meme
 from time import sleep
 
-chdir(__file__[0:__file__.rfind(".")])
+chdir(__file__[0:__file__.rfind("/")])
 
 
 def message(uuid, msg):
@@ -19,7 +19,7 @@ def message(uuid, msg):
 
 def mark_read(uuid):
     retries = 0
-    while retries <= 5:
+    while retries <= 1:
         try:
             vk.messages.markAsRead(peer_id=uuid)
             break
@@ -30,7 +30,7 @@ def mark_read(uuid):
             sleep(2)
 
 
-def make_photo(url, uuid, text):
+def make_photo(url, uuid, text, font):
     max_attempts = 2
     for tries in range(max_attempts):
         try:
@@ -38,16 +38,18 @@ def make_photo(url, uuid, text):
             extension = url[url.rfind("."):url.rfind("?")]
             if extension != ".jpg":
                 extension = ".jpg"
-                download_file = open(images_folder + "img_received" + extension, "wb")
-                download_file.write(req.content)
-                download_file.close()
-                # meme generator moment
-                meme = make_meme(text[0], text[1], images_folder + "img_received" + extension)
-                meme.save(images_folder + "img_output" + extension)
-                upload = vk_api.VkUpload(vk)
-                photo = upload.photo_messages(images_folder + "img_output" + extension)
-                break
+            download_file = open(images_folder + "img_received" + extension, "wb")
+            download_file.write(req.content)
+            download_file.close()
+            # meme generator moment
+            meme = make_meme(text[0], text[1], images_folder + "img_received" + extension, font_file=font)
+            meme.save(images_folder + "img_output" + extension)
+            upload = vk_api.VkUpload(vk)
+            photo = upload.photo_messages(images_folder + "img_output" + extension)
+            break
         except:
+            if DEBUG:
+                print("could not process image from", uuid)
             if tries >= max_attempts:
                 message(uuid, "Ой ох.... Что то пошло не так... Попробуйте отправить ещё разок...")
                 return -1
@@ -60,6 +62,7 @@ def make_photo(url, uuid, text):
     tree = glob(images_folder + "*")
     for i in tree:
         remove(i)
+
 
 if __name__ == "__main__":
     while True:
@@ -156,7 +159,7 @@ if __name__ == "__main__":
                                         print(img)
                                     if DEBUG:
                                         print(text)
-                                    make_photo(img['url'], uuid, text)
+                                    make_photo(img['url'], uuid, text, font)
                     if DEBUG:
                         print("от", uuid, "пришло", msg)
                 elif event.type == VkBotEventType.MESSAGE_NEW and event.obj["text"] and not event.obj["attachments"]:
