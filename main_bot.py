@@ -52,15 +52,14 @@ def make_photo(url, uuid, text):
                 message(uuid, "Ой ох.... Что то пошло не так... Попробуйте отправить ещё разок...")
                 return -1
 
-
-owner_id = photo[0]['owner_id']
-photo_id = photo[0]['id']
-access_key = photo[0]['access_key']
-attachment = f'photo{owner_id}_{photo_id}_{access_key}'
-vk.messages.send(peer_id=uuid, random_id=randint(-2147483648, 2147483648), attachment=attachment)
-tree = glob(images_folder + "*")
-for i in tree:
-    remove(i)
+    owner_id = photo[0]['owner_id']
+    photo_id = photo[0]['id']
+    access_key = photo[0]['access_key']
+    attachment = f'photo{owner_id}_{photo_id}_{access_key}'
+    vk.messages.send(peer_id=uuid, random_id=randint(-2147483648, 2147483648), attachment=attachment)
+    tree = glob(images_folder + "*")
+    for i in tree:
+        remove(i)
 
 if __name__ == "__main__":
     while True:
