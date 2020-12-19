@@ -18,16 +18,10 @@ def message(uuid, msg):
 
 
 def mark_read(uuid):
-    retries = 0
-    while retries <= 1:
-        try:
-            vk.messages.markAsRead(peer_id=uuid)
-            break
-        except:
-            if DEBUG:
-                print("could not send MarkAsRead packet, retrying")
-            retries += 1
-            sleep(2)
+    try:
+        vk.messages.markAsRead(peer_id=uuid)
+    except:
+        pass
 
 
 def make_photo(url, uuid, text, font):
